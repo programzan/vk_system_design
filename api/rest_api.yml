@@ -1,0 +1,499 @@
+openapi: 3.0.3
+info:
+  title: VK API System Design
+  description: |-
+    Проектирование API ВКонтакте
+    
+    Автор: **Никита Рамазанов**
+  version: 1.0.11
+servers:
+  - url: https://vk-api.swagger.io/api/v1
+tags:
+  - name: users
+    description: Операции работы с пользователями
+  - name: posts
+    description: Операции работы с постами
+  - name: chats
+    description: Операции работы с чатами
+paths:
+  /users/friends/{friend_id}:
+    post:
+      tags:
+        - users
+      summary: Добавление пользователя в друзья
+      description: Метод добавляет в друзья пользователя с переданным ID
+      operationId: add_friend
+      parameters:
+        - name: friend_id
+          in: path
+          description: ID пользователя, добавляемого в друзья
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '201':
+          description: Пользователь добавлен в друзья
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Передан некорректный ID
+    delete:
+      tags:
+        - users
+      summary: Удаление пользователя из друзей
+      description: Метод удаляет из друзей пользователя с переданным ID
+      operationId: delete_friend
+      parameters:
+        - name: friend_id
+          in: path
+          description: ID пользователя, удаляемого из друзей
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Пользователь удален из друзей
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Передан некорректный ID
+  /users/{user_id}/profile:
+    get:
+      tags:
+        - users
+      summary: Просмотр анкеты пользователя
+      description: Метод возвращает анкету пользователя с переданным ID
+      operationId: get_user_profile_by_user_id
+      parameters:
+        - name: user_id
+          in: path
+          description: ID пользователя 
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Передан некорректный ID
+        '404':
+          description: Пользователь не найден
+  /users/{user_id}/friends:
+    get:
+      tags:
+        - users
+      summary: Просмотр списка друзей пользователя
+      description: Метод возвращает список друзей пользователя с переданным ID
+      operationId: get_user_friends_by_user_id
+      parameters:
+        - name: user_id
+          in: path
+          description: ID пользователя 
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: Передан некорректный ID
+        '404':
+          description: Пользователь не найден
+  /posts:
+    get:
+      tags:
+        - posts
+      summary: Просмотр ленты постов
+      description: 
+        Просмотр ленты постов пользователя.
+        При запросе без параметров - метод возвращает ленту постов текущего пользователя.
+        При передаче user_id - ленту постов пользователя с данным user_id.
+      operationId: get_posts_by_user
+      parameters:
+        - name: user_id
+          in: query
+          description: ID пользователя, ленту постов которого необходимо получить
+          required: false
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '400':
+          description: Передан некорректный ID
+        '404':
+          description: Пользователь не найден
+    post:
+      tags:
+        - posts
+      summary: Публикация поста в ленту
+      description: Метод создает новый пост в ленте пользователя
+      operationId: create_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePost'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreatePost'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreatePost'
+      responses:
+        '201':
+          description: Пост успешно опубликован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Переданы некорректные данные
+  /posts/{post_id}/media:
+    post:
+      tags:
+        - posts
+      summary: Загрузка медиа-файла в пост
+      description: Метод загружает прикрепленный медиа-файл в пост
+      operationId: add_media_to_post
+      parameters:
+        - name: post_id
+          in: path
+          description: ID поста, в который загружается медиа-файл
+          required: true
+          schema:
+            type: integer
+            format: int4
+        - name: additional_metadata
+          in: query
+          description: Дополнительные метаданные
+          required: false
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Медиа-файл успешно прикреплен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Передан неверный ID
+        '404':
+          description: Пост не найден
+  /chats:
+    get:
+      tags:
+        - chats
+      summary: Просмотр списка чатов пользователя
+      description: Метод возвращает список чатов и диалогов пользователя с переданным ID
+      operationId: get_chats_by_user_id
+      parameters:
+        - name: user_id
+          in: query
+          description: ID пользователя, чаты которого необходимо получить
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+        '400':
+          description: Передан неверный ID
+        '404':
+          description: Пользователь не найден
+  /chats/{chat_id}/messages:
+    get:
+      tags:
+        - chats
+      summary: Просмотр сообщений в чате
+      description: Метод возвращает список сообщений в чате с переданным ID
+      operationId: get_messages_by_chat_id
+      parameters:
+        - name: chat_id
+          in: path
+          description: ID чата, сообщения которого необходимо получить
+          required: true
+          schema:
+            type: integer
+            format: int4
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '400':
+          description: Передан неверный ID
+        '404':
+          description: Чат не найден
+    post:
+      tags:
+        - chats
+      summary: Отправка сообщения в чат
+      description: Метод создает новое сообщение в чате от текущего пользователя
+      operationId: create_message_in_chat
+      parameters:
+        - name: chat_id
+          in: path
+          description: ID чата, в который необходимо отправить сообщение
+          required: true
+          schema:
+            type: integer
+            format: int4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateMessage'
+      responses:
+        '201':
+          description: Сообщение успешно отправлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+  /chats/{chat_id}/messages/{message_id}:
+    post:
+      tags:
+        - chats
+      summary: Изменение статуса просмотра сообщения
+      description: Метод отмечает сообщение просмотренным или непросмотренным
+      operationId: read_or_unread_message
+      parameters:
+        - name: chat_id
+          in: path
+          description: ID чата, сообщение в котором необходимо прочитать
+          required: true
+          schema:
+            type: integer
+            format: int4
+        - name: message_id
+          in: path
+          description: ID сообщения, которое необходимо прочитать
+          required: true
+          schema:
+            type: integer
+            format: int4
+        - name: is_read
+          in: query
+          description: Статус "Прочитано?"
+          required: true
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Запрос успешно выполнен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Передан неверный ID
+        '404':
+          description: Чат/сообщение не найдены
+components:
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int4
+          example: 123
+        nickname:
+          type: string
+          example: ivanivanov
+        first_name:
+          type: string
+          example: Иван
+        last_name:
+          type: string
+          example: Иванов
+        avatar_url:
+          type: string
+          example: 'https://example.com/avatars/1/'
+        phone:
+          type: string
+          example: '+79999999999'
+        birthday:
+          type: string
+          example: '01.01.2000'
+        marital_status:
+          type: string
+          example: single
+        city:
+          type: string
+          example: Moscow
+        work:
+          type: string
+          example: Umschool
+      xml:
+        name: userprofile
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int4
+          example: 123
+        body:
+          type: string
+          example: text
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+      xml:
+        name: post
+    CreatePost:
+      required:
+        - body
+      type: object
+      properties:
+        body:
+          type: string
+          example: text
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateMedia'
+      xml:
+        name: createpost
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int4
+          example: 123
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+      xml:
+        name: chat
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int4
+          example: 123
+        author:
+          $ref: '#/components/schemas/UserProfile'
+        body:
+          type: string
+          example: text
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/Media'
+      xml:
+        name: message
+    CreateMessage:
+      type: object
+      properties:
+        body:
+          type: string
+          example: text
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateMedia'
+      xml:
+        name: message
+    Media:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int4
+          example: 123
+        file_type:
+          type: string
+          enum:
+            - photo
+            - audio
+            - video
+            - other
+          example: photo
+        url:
+          type: string
+          example: 'https://example.com/files/1/'
+    CreateMedia:
+      type: object
+      properties:
+        file_type:
+          type: string
+          enum:
+            - photo
+            - audio
+            - video
+            - other
+          example: photo
+        url:
+          type: string
+          example: 'https://example.com/files/1/'
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int4
+        type:
+          type: string
+        message:
+          type: string
+      xml:
+        name: '##default'
